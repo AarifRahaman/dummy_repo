@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential clang-format cppcheck
+
+      - name: clang-format (style check)
+        run: |
+          # Fail if any file would be reformatted
+          clang-format --version
+          git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' | xargs -I{} bash -c 'clang-format --dry-run -Werror "{}"'
+
+      - name: cppcheck (static analysis)
+        run: |
+          cppcheck --version
+          cppcheck --error-exitcode=1 --enable=all --inline-suppr --suppress=missingIncludeSystem \
+            -I include src tests
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -- -j
+
+      - name: Test
+        run: |
+          ctest --test-dir build --output-on-failure
