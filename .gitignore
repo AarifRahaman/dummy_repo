@@ -1,0 +1,12 @@
+# C/C++
+build/
+compile_commands.json
+
+# OS / tools
+.DS_Store
+*.user
+*.swp
+*.swo
+
+# Doxygen output (local)
+docs/
