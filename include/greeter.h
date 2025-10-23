@@ -8,4 +8,4 @@ inline std::string greet(const std::string& name) {
     return "Hello, " + (name.empty() ? std::string("World") : name) + "!";
 }
 
-} // namespace demo
+}  // namespace demo
