@@ -2,8 +2,8 @@
 PROJECT_NAME           = "hello-cpp-ci"
 PROJECT_NUMBER         = 0.1.0
 OUTPUT_DIRECTORY       = docs
-GENERATE_HTML          = YES
-GENERATE_LATEX         = NO
+GENERATE_HTML          = NO
+GENERATE_LATEX         = YES
 RECURSIVE              = YES
 INPUT                  = include src
 EXTRACT_ALL            = YES
