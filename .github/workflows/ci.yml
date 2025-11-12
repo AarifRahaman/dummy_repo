@@ -12,44 +12,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install deps
+      - name: Install deps (build, lint, docs)
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential clang-format cppcheck
+          sudo apt-get install -y \
+            cmake build-essential clang-format cppcheck \
+            doxygen texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
 
       - name: clang-format (style check)
         run: |
-          # Fail if any file would be reformatted
           clang-format --version
           git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' | xargs -I{} bash -c 'clang-format --dry-run -Werror "{}"'
 
-     
       - name: cppcheck (static analysis)
         run: |
           cppcheck --version
           cppcheck --error-exitcode=1 --enable=warning,style,performance,portability \
-          --inline-suppr -I include src tests
-
+            --inline-suppr -I include src tests
 
       - name: Configure
-        run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release -- -j
 
       - name: Test
-        run: |
-          ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure
 
-
-    # 2. Install required dependencies for LaTeX/PDF
-      - name: Install LaTeX and Doxygen
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
-
-    # 3. Generate PDF using Doxygen (assuming Doxyfile is in root)
       - name: Build Doxygen PDF
         run: |
           doxygen Doxyfile
@@ -57,12 +46,8 @@ jobs:
           make
           mv refman.pdf ../Documentation.pdf
 
-    # 4. Upload the generated PDF as workflow artifact
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: documentation-pdf
           path: Documentation.pdf
-
-
-  
