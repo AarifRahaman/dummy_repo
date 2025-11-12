@@ -20,16 +20,22 @@ jobs:
             doxygen graphviz \
             doxygen texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
 
+      - name: clang-format (auto-fix)
+        run: |
+          clang-format -i $(git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp')
+
       - name: clang-format (style check)
         run: |
           clang-format --version
-          git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' | xargs -I{} bash -c 'clang-format --dry-run -Werror "{}"'
+          git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' | \
+          xargs -I{} bash -c 'clang-format --dry-run -Werror "{}"'
 
       - name: cppcheck (static analysis)
         run: |
           cppcheck --version
           cppcheck --error-exitcode=1 --enable=warning,style,performance,portability \
-            --inline-suppr -I include src tests
+          --inline-suppr -I include src tests
+
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
