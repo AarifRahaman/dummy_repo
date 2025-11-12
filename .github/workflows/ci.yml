@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  build-test-lint:
+  build-test-lint-docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,3 +41,28 @@ jobs:
       - name: Test
         run: |
           ctest --test-dir build --output-on-failure
+
+
+    # 2. Install required dependencies for LaTeX/PDF
+      - name: Install LaTeX and Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+
+    # 3. Generate PDF using Doxygen (assuming Doxyfile is in root)
+      - name: Build Doxygen PDF
+        run: |
+          doxygen Doxyfile
+          cd latex
+          make
+          mv refman.pdf ../Documentation.pdf
+
+    # 4. Upload the generated PDF as workflow artifact
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-pdf
+          path: Documentation.pdf
+
+
+  
