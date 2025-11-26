@@ -13,12 +13,12 @@
 namespace demo {
 
 /**
- * @brief Generates a greeting message for the specified name.
+ * @brief Generates a greeting message for the specified Name.
  *
  * This inline helper function returns a string like `"Hello, Arifur!"`.
  * If the given name is empty, it defaults to `"Hello, World!"`.
  *
- * @param name The name of the person to greet.  
+ * @param name The name of the person to greet.
  *             If empty, the function uses `"World"`.
  * @return A greeting string in the format `"Hello, <name>!"`.
  *
