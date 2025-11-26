@@ -58,7 +58,7 @@ jobs:
 
       
       - name: Static analysis (cppcheck)
-          if:false  
+        if: false
         
         run: |
           # Decide which files to check
