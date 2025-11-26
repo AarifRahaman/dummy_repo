@@ -1,69 +1,112 @@
-name: CI - Pipeline
+name: CI (build, lint, test)
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  build-test-lint-docs:
+  build-lint-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install deps (build, lint, docs)
+      - name: Install dependencies (CMake, compiler, lint tools)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            cmake build-essential clang-format cppcheck \
-            doxygen graphviz \
-            doxygen texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+            cmake build-essential \
+            clang-format cppcheck
 
-      - name: clang-format (auto-fix)
+      - name: Configure (CMake)
         run: |
-          clang-format -i $(git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp')
+          mkdir -p build
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-      - name: clang-format (style check)
-        run: |
-          clang-format --version
-          git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' | \
-          xargs -I{} bash -c 'clang-format --dry-run -Werror "{}"'
-
-      - name: cppcheck (static analysis)
-        run: |
-          cppcheck --version
-          cppcheck --error-exitcode=1 --enable=warning,style,performance,portability \
-          --inline-suppr -I include src tests
-
-
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build --config Release -- -j
-
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-      - name: Build Doxygen PDF
-        run: |
-          set -euo pipefail
-          doxygen Doxyfile
-          LATEX_DIR="$(find . -type d -name latex -print -quit)"
-          if [ -z "$LATEX_DIR" ]; then
-          echo "ERROR: No 'latex' folder found. Check GENERATE_LATEX/OUTPUT_DIRECTORY/LATEX_OUTPUT in Doxyfile."
-          exit 1
-          fi
-          make -C "$LATEX_DIR"
-          cp "$LATEX_DIR/refman.pdf" Documentation.pdf
+      # ---------- clang-format (style check) ----------
       
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: documentation-pdf
-          path: Documentation.pdf        
-          if-no-files-found: error
-          retention-days: 14
+      - name: clang-format (style check)
+        
+        run: |
+          # Decide which files to check
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR event → only changed C/C++ files relative to base branch: ${{ github.base_ref }}"
+            git fetch origin ${{ github.base_ref }} --depth=1
+            files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- \
+              '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' '*.cxx' '*.tpp')
+          else
+            echo "Push event → all tracked C/C++ files"
+            files=$(git ls-files '*.h' '*.hpp' '*.c' '*.cc' '*.cpp' '*.cxx' '*.tpp')
+          fi
 
+          if [ -z "$files" ]; then
+            echo "No C/C++ files to check, skipping clang-format."
+            exit 0
+          fi
 
+          clang-format --version
+          echo "$files" | xargs -I{} clang-format --dry-run -Werror "{}"
+      
+      
+      
+      # ---------- cppcheck ----------
+
+      
+      - name: Static analysis (cppcheck)
+        
+        run: |
+          # Decide which files to check
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR event → only changed C/C++ files relative to base branch: ${{ github.base_ref }}"
+            git fetch origin ${{ github.base_ref }} --depth=1
+            files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- \
+              '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hpp' '*.tpp')
+          else
+            echo "Push event → all tracked C/C++ files"
+            files=$(git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hpp' '*.tpp')
+          fi
+
+          if [ -z "$files" ]; then
+            echo "No C/C++ files to check, skipping cppcheck."
+            exit 0
+          fi
+
+          echo "Running cppcheck on:"
+          echo "$files"
+
+          cppcheck \
+            --enable=all \
+            --error-exitcode=1 \
+            --std=c++20 \
+            --inline-suppr \
+            --quiet \
+            --suppress=missingIncludeSystem \
+            --suppress=*:*build/* \
+            $files
+            
+      
+      
+      - name: Build
+        run: |
+          cmake --build build --config Release -- -j"$(nproc)"
+
+      - name: Run tests (CTest)
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: Deploy
+        run: |
+          echo "✅ All checks passed. Deploying..."
+          # your deploy commands go here
+
+      
+
+      
+
+          
