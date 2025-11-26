@@ -29,14 +29,9 @@ run_clang_format() {
     echo "Running clang-format --dry-run -Werror on:"
     echo "$files"
 
-    for f in $files; do
-        if [ ! -f "$f" ]; then
-            echo "Skipping missing file: $f (not found)"
-            continue
-        fi
-        clang-format --dry-run -Werror "$f"
-    done
-}
+    echo "$files" | xargs -I{} clang-format --dry-run -Werror "{}"
+
+    }
 
 run_cppcheck() {
     files=$(get_cpp_files)
